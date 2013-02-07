@@ -1,0 +1,9 @@
+*~
+*.elf
+*.map
+*.lst
+*.mot
+*.hex
+*.srec
+*.[ado]
+gdb-logfile
