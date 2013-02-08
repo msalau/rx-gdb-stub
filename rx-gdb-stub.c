@@ -63,7 +63,7 @@ static unsigned char * stepping_brk_address = NULL;
 static unsigned char   stepping_brk_opcode = OPCODE_BRK;
 
 __attribute__((naked))
-void save_context (void)
+static void save_context (void)
 {
     asm volatile (
         "push  r15 \n"
@@ -140,7 +140,7 @@ void save_context (void)
 }
 
 __attribute__((naked))
-void restore_context_and_exit (void)
+static void restore_context_and_exit (void)
 {
     asm volatile (
         ";; Remove return address from stack \n"
@@ -221,7 +221,7 @@ static void stub_rsp_handler(unsigned int signal);
 static int getchar(void);
 static int putchar(int c);
 
-unsigned int get_next_pc (void)
+static unsigned int get_next_pc (void)
 {
     const unsigned char * const pc = (unsigned char*)registers[PC];
     const unsigned char * next_pc = pc;
@@ -889,7 +889,7 @@ static void put_packet(const char *buffer)
     while ('+' != getchar());
 }
 
-void start_step (void)
+static void start_step (void)
 {
     stepping_brk_address = (unsigned char*)get_next_pc();
     stepping_brk_opcode = *stepping_brk_address;
@@ -920,7 +920,7 @@ void start_step (void)
 #endif /* DEBUG_STEPPING */
 }
 
-void finish_step (void)
+static void finish_step (void)
 {
     /* Step back on breakpoint instruction if it is hit */
     if ((stepping_brk_address + 1) == (unsigned char*)registers[PC])
