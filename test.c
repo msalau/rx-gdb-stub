@@ -1,6 +1,6 @@
 #include "rx-gdb-stub.h"
 
-__attribute__((section(".ramfunc.main")))
+__attribute__((section(".ramfunc.foo")))
 void foo (void)
 {
     for (int i = 100000; i; --i)
