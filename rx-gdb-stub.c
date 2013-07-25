@@ -49,7 +49,7 @@ static unsigned int registers[NUM_REGS + 1];
 #define PSW_O (0 != (registers[PSW] & PSW_O_BIT))
 
 /* Stack pointer provided by linker script.
-   It is used to distinguish RAM area */
+   It is used to get end of RAM area */
 extern unsigned int _stack;
 
 #define RAM_END ((void*)&_stack)
@@ -876,7 +876,7 @@ static char * get_packet(void)
     }
 }
 
-static void put_packet(const char *buffer)
+static void put_packet (const char *buffer)
 {
     do
     {
@@ -1245,8 +1245,8 @@ void stub_init (void)
     /* Setup TXD1 pin */
     PORT2.DDR.BIT.B6 = 1;
 
-    SCI1.SCR.BIT.CKE = 0;                                   /* Use internal baudrate generator, SCK pin function os IO port */
-    SCI1.SMR.BYTE = 0;                                      /* PCLK/1, 8N1, async mode, multiprocessor mode disabled */
+    SCI1.SCR.BIT.CKE = 0;                                   /* Use internal baudrate generator, SCK pin functions as IO port */
+    SCI1.SMR.BYTE = 0;                                      /* PCLK/1, 8N1, asynchronous mode, multiprocessor mode is disabled */
     SCI1.SCMR.BIT.SMIF = 0;                                 /* Not smart card mode */
     SCI1.SCMR.BIT.SINV = 0;                                 /* No TDR inversion */
     SCI1.SCMR.BIT.SDIR = 0;                                 /* LSB first */
