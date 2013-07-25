@@ -11,6 +11,7 @@ OBJDUMP=rx-elf-objdump
 OBJCOPY=rx-elf-objcopy
 DEBUGGER=rx-elf-gdb
 FLASH_TOOL=rxusb
+LINT=splint
 
 GUIDEBUGGER=ddd
 GUIDEBUGGERFLAGS=--debugger $(DEBUGGER)
@@ -66,6 +67,31 @@ LDFLAGS=\
 	-T bsp/RX62N8.ld \
 	$(END)
 
+CPATH=`$(CC) -print-file-name=include`
+
+LINTFLAGS=\
+	-linelen 10000 \
+	+quiet \
+	+stats \
+	+show-summary \
+	$(INCLUDE) \
+	+boolint \
+	+charint \
+	+slashslashcomment \
+	+declundef \
+	+relax-types \
+	+nullptrarith \
+	+sizeoftype \
+	+looploopbreak \
+	+loopswitchbreak \
+	+evalorderuncon \
+	+bitwisesigned \
+	+matchanyintegral \
+	-D'__RX_LITTLE_ENDIAN__' \
+	-D'__volatile__=' \
+	-D'__asm__(a)=' \
+	$(END)
+
 SRC=\
 	bsp/isr_vectors.c \
 	rx-gdb-stub.c \
@@ -76,6 +102,10 @@ OBJ=$(SRC:.c=.o) bsp/crt0.o
 DEP=$(OBJ:.o=.d)
 
 all: $(PROJECT_LST) $(PROJECT)
+
+check: $(SRC)
+	@echo -e "\tLINT\t*.c"
+	@CPATH=$(CPATH) $(LINT) $(LINTFLAGS) $^
 
 $(PROJECT): $(OBJ)
 	@echo -e "\tLD\t"$@
