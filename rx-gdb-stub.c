@@ -826,7 +826,7 @@ static void * hex2mem(void *dst, const char *src, unsigned int size)
     return d;
 }
 
-static char * get_packet(void)
+static void get_packet(void)
 {
     char c = '\0';
     /* Retry until correct packet is received */
@@ -866,7 +866,7 @@ static char * get_packet(void)
             if (checksum == received_checksum)
             {
                 stub_putchar('+');
-                return trx_buffer;
+                break;
             }
             else
             {
@@ -982,8 +982,9 @@ static void stub_rsp_handler (unsigned int signal)
     /* Communicate with GDB */
     for (;;)
     {
+        const char *p = trx_buffer;
         trx_buffer[0] = '\0';
-        const char *p = get_packet();
+        get_packet();
         switch (*p++)
         {
         case '?':                                           /* Report current state */
