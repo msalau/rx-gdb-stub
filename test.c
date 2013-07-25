@@ -1,11 +1,12 @@
 #include "rx-gdb-stub.h"
+#include "intrinsics.h"
 
 __attribute__((section(".ramfunc.foo")))
 void foo (void)
 {
     for (int i = 100000; i; --i)
     {
-        NOP();
+        __no_operation();
     }
 }
 
@@ -14,13 +15,13 @@ void main (void)
 {
     volatile unsigned int lval1 = 0;
     volatile unsigned int lval2 = -1;
-    asm volatile ("setpsw I");
+    __enable_interrupt();
     debug_puts("Hello, buggy world!");
     for (;;)
     {
         ++lval1;
         --lval2;
         foo();
-        NOP();
+        __no_operation();
     }
 }
