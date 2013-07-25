@@ -2,7 +2,7 @@
 #include "intrinsics.h"
 
 __attribute__((section(".ramfunc.foo")))
-void foo (void)
+static void foo (void)
 {
     for (int i = 100000; i; --i)
     {
@@ -11,7 +11,7 @@ void foo (void)
 }
 
 __attribute__((section(".ramfunc.main")))
-void main (void)
+int main (void)
 {
     volatile unsigned int lval1 = 0;
     volatile unsigned int lval2 = -1;

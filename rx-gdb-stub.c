@@ -19,6 +19,11 @@
 #include <limits.h>
 
 #define SIGBREAK 0x03
+static void stub_rsp_handler (unsigned int signal);
+static char stub_getchar (void);
+static void stub_putchar (char c);
+static void stub_puts (const char *str);
+
 
 #define TARGET_SIGNAL_INT  2
 #define TARGET_SIGNAL_TRAP 5
@@ -216,10 +221,6 @@ static void restore_context_and_exit (void)
         "rte \n"
         :: "i" (&registers), "i" (sizeof registers));
 }
-
-static void stub_rsp_handler(unsigned int signal);
-static int getchar(void);
-static int putchar(int c);
 
 static unsigned int get_next_pc (void)
 {
@@ -791,7 +792,7 @@ static char * mem2hex(char *dst, const void *src, unsigned int size)
 {
     // TODO read by 16/32 bits if possible
     unsigned int i = size;
-    unsigned char *s = (unsigned char*)src;
+    const unsigned char *s = (const unsigned char*)src;
     char *d = dst;
     for (; i; --i)
     {
@@ -828,7 +829,7 @@ static char * get_packet(void)
         /* Wait for start byte */
         while ('$' != c)
         {
-            c = getchar();
+            c = stub_getchar();
         }
 
         unsigned int checksum = 0;
@@ -838,7 +839,7 @@ static char * get_packet(void)
         /* Receive packet payload */
         while (BUFFER_SIZE > count)
         {
-            c = getchar();
+            c = stub_getchar();
             if ('$' == c ||
                 '#' == c)
             {
@@ -853,17 +854,17 @@ static char * get_packet(void)
         if ('#' == c)
         {
             unsigned int received_checksum = 0;
-            received_checksum += char2int(getchar()) << 4;
-            received_checksum += char2int(getchar());
+            received_checksum += char2int(stub_getchar()) << 4;
+            received_checksum += char2int(stub_getchar());
             checksum &= 0x00FF;
             if (checksum == received_checksum)
             {
-                putchar('+');
+                stub_putchar('+');
                 return trx_buffer;
             }
             else
             {
-                putchar('-');
+                stub_putchar('-');
             }
         }
     }
@@ -875,18 +876,18 @@ static void put_packet(const char *buffer)
     {
         const char *p = buffer;
         unsigned int checksum = 0;
-        putchar('$');
+        stub_putchar('$');
         while ('\0' != *p)
         {
-            putchar(*p);
+            stub_putchar(*p);
             checksum += *p;
             ++p;
         }
-        putchar('#');
-        putchar(hexchars[(checksum >> 4) & 0x0F]);
-        putchar(hexchars[(checksum >> 0) & 0x0F]);
+        stub_putchar('#');
+        stub_putchar(hexchars[(checksum >> 4) & 0x0F]);
+        stub_putchar(hexchars[(checksum >> 0) & 0x0F]);
     }
-    while ('+' != getchar());
+    while ('+' != stub_getchar());
 }
 
 static void start_step (void)
@@ -1124,7 +1125,7 @@ void debug_puts (const char *str)
     asm volatile ("int #1");
 }
 
-void stub_puts (const char *str)
+static void stub_puts (const char *str)
 {
     unsigned int length = strlen(str);
     /* Truncate string to match buffer size */
@@ -1139,18 +1140,20 @@ void stub_puts (const char *str)
 }
 
 __attribute__((interrupt,naked))
-void stub_puts_handler (void)
+static void stub_puts_handler (void)
 {
     asm volatile (
         "pushm  r1-r15      \n"
-        "bsr    _stub_puts  \n"
+        "mov.l  %0, r15     \n"
+        "jsr    r15         \n"
         "popm   r1-r15      \n"
         "rte                \n"
+        :: "i" (stub_puts)
         );
 }
 
 __attribute__((interrupt,naked))
-void stub_rx_handler(void)
+static void stub_rx_handler (void)
 {
     save_context();
     IR(SCI1, RXI1) = 0;
@@ -1163,7 +1166,7 @@ void stub_rx_handler(void)
 }
 
 __attribute__((interrupt,naked))
-void stub_erx_handler(void)
+static void stub_erx_handler (void)
 {
     save_context();
     /* Wait till the end of BREAK signal */
@@ -1180,27 +1183,27 @@ void stub_erx_handler(void)
 }
 
 __attribute__((interrupt,naked))
-void stub_brk_handler(void)
+static void stub_brk_handler (void)
 {
     save_context();
     stub_rsp_handler(TARGET_SIGNAL_TRAP);
     restore_context_and_exit();
 }
 
-static int putchar (int c)
+static void stub_putchar (char c)
 {
     while (0 == IR(SCI1,TXI1));
     IR(SCI1,TXI1) = 0;
-    SCI1.TDR = (unsigned char)c;
-    return (unsigned char)c;
+    SCI1.TDR = c;
 }
 
-static int getchar (void)
+static char stub_getchar (void)
 {
+    char c;
     while (0 == IR(SCI1,RXI1));
     IR(SCI1,RXI1) = 0;
-    unsigned char c = SCI1.RDR;
-    return (unsigned char)c;
+    c = SCI1.RDR;
+    return c;
 }
 
 #ifndef PCLK_FREQUENCY
@@ -1211,7 +1214,7 @@ static int getchar (void)
 #define SCI1_BAUDRATE  115200U
 #endif
 
-void stub_init(void)
+void stub_init (void)
 {
     /* Configure system clocks as following:
        EXTAL = 12 MHz
