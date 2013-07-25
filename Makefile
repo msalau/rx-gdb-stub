@@ -56,6 +56,7 @@ CFLAGS=\
 	$(END)
 
 ASFLAGS=\
+	-MMD \
 	$(END)
 
 LDFLAGS=\
