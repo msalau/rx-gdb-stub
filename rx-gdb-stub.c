@@ -70,7 +70,7 @@ static unsigned char   stepping_brk_opcode = OPCODE_BRK;
 __attribute__((naked))
 static void save_context (void)
 {
-    asm volatile (
+    __asm__ __volatile__ (
         "push  r15 \n"
         "mov.l %0, r15 \n"
         ";; Skip R0 \n"
@@ -147,7 +147,7 @@ static void save_context (void)
 __attribute__((naked))
 static void restore_context_and_exit (void)
 {
-    asm volatile (
+    __asm__ __volatile__ (
         ";; Remove return address from stack \n"
         "pop   r15 \n"
         ";; Prepare to restore context \n"
@@ -1131,7 +1131,7 @@ static void stub_rsp_handler (unsigned int signal)
 
 void debug_puts (const char *str)
 {
-    asm volatile ("int #1");
+    __asm__ __volatile__ ("int #1");
 }
 
 static void stub_puts (const char *str)
@@ -1151,7 +1151,7 @@ static void stub_puts (const char *str)
 __attribute__((interrupt,naked))
 static void stub_puts_handler (void)
 {
-    asm volatile (
+    __asm__ __volatile__ (
         "pushm  r1-r15      \n"
         "mov.l  %0, r15     \n"
         "jsr    r15         \n"
@@ -1282,7 +1282,7 @@ void stub_init (void)
         int i;
         for (i = 20000ul; i > 0; --i)
         {
-            asm volatile ("");
+            __asm__ __volatile__ ("");
         }
     }
     /* Enable receiver and transmitter. This MUST be done simultaneously. */
