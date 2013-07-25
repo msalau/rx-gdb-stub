@@ -4,7 +4,8 @@
 __attribute__((section(".ramfunc.foo")))
 static void foo (void)
 {
-    for (int i = 100000; i; --i)
+    int i;
+    for (i = 100000; i > 0; --i)
     {
         __no_operation();
     }

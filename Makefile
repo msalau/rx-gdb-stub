@@ -53,7 +53,7 @@ CFLAGS=\
 	-mint-register=0 \
 	-ffunction-sections \
 	-fdata-sections \
-	-std=gnu99 \
+	-std=gnu89 \
 	$(END)
 
 ASFLAGS=\

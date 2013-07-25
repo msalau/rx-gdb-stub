@@ -9,9 +9,9 @@ typedef void (*irq_handler)(void);
 extern irq_handler _isr_vectors[256];
 
 #ifdef __cplusplus
-} // extern "C"
+} /* extern "C" */
 #endif
 
 #define interrupt_attr __attribute__((interrupt))
 
-#endif // ISR_VECTORS_H__
+#endif /* ISR_VECTORS_H__ */

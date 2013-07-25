@@ -796,7 +796,7 @@ static unsigned int hex2int (const char *src, const char **p)
 
 static char * mem2hex(char *dst, const void *src, unsigned int size)
 {
-    // TODO read by 16/32 bits if possible
+    /* TODO read by 16/32 bits if possible */
     unsigned int i = size;
     const unsigned char *s = (const unsigned char*)src;
     char *d = dst;
@@ -812,7 +812,7 @@ static char * mem2hex(char *dst, const void *src, unsigned int size)
 
 static void * hex2mem(void *dst, const char *src, unsigned int size)
 {
-    // TODO read by 16/32 bits if possible
+    /* TODO read by 16/32 bits if possible */
     unsigned int i = size;
     unsigned char c;
     const char *s = src;
@@ -832,15 +832,15 @@ static void get_packet(void)
     /* Retry until correct packet is received */
     for (;;)
     {
+        unsigned int checksum = 0;
+        unsigned int count = 0;
+        char *rxp = trx_buffer;
+
         /* Wait for start byte */
         while ('$' != c)
         {
             c = stub_getchar();
         }
-
-        unsigned int checksum = 0;
-        unsigned int count = 0;
-        char *rxp = trx_buffer;
 
         /* Receive packet payload */
         while (BUFFER_SIZE > count)
@@ -999,13 +999,13 @@ static void stub_rsp_handler (unsigned int signal)
             break;
         case 'p':                                           /* Read specific register */
         {
+            unsigned int register_size = sizeof registers[0];
             unsigned int n = hex2int(p, NULL);
             if (NUM_REGS <= n)
             {
                 strcpy(trx_buffer, "E02");
                 break;
             }
-            unsigned int register_size = sizeof registers[0];
             /* If ACC value is requested,
                double register size, since ACC size is 8 bytes */
             if (ACC == n)
@@ -1017,6 +1017,7 @@ static void stub_rsp_handler (unsigned int signal)
         }
         case 'P':                                           /* Write specific register */
         {
+            unsigned int register_size = sizeof registers[0];
             unsigned int n = hex2int(p, &p);
             if ('=' != *p++)
             {
@@ -1028,7 +1029,6 @@ static void stub_rsp_handler (unsigned int signal)
                 strcpy(trx_buffer, "E02");
                 break;
             }
-            unsigned int register_size = sizeof registers[0];
             /* If ACC value is requested,
                double register size, since ACC size is 8 bytes */
             if (ACC == n)
@@ -1041,25 +1041,27 @@ static void stub_rsp_handler (unsigned int signal)
         }
         case 'm':                                           /* Read memory */
         {
+            unsigned int length;
             unsigned int address = hex2int(p, &p);
             if (',' != *p++)
             {
                 strcpy(trx_buffer, "E01");
                 break;
             }
-            unsigned int length = hex2int(p, NULL);
+            length = hex2int(p, NULL);
             mem2hex(trx_buffer, (const void*)address, length);
             break;
         }
         case 'M':                                           /* Write memory */
         {
+            unsigned int length;
             void * address = (void*)hex2int(p, &p);
             if (',' != *p++)
             {
                 strcpy(trx_buffer, "E01");
                 break;
             }
-            unsigned int length = hex2int(p, &p);
+            length = hex2int(p, &p);
             if (':' != *p++)
             {
                 strcpy(trx_buffer, "E01");
@@ -1164,10 +1166,12 @@ static void stub_rx_handler (void)
 {
     save_context();
     IR(SCI1, RXI1) = 0;
-    char c = SCI1.RDR;
-    if (SIGBREAK == c)
     {
-        stub_rsp_handler(TARGET_SIGNAL_INT);
+        char c = SCI1.RDR;
+        if (SIGBREAK == c)
+        {
+            stub_rsp_handler(TARGET_SIGNAL_INT);
+        }
     }
     restore_context_and_exit();
 }
@@ -1274,9 +1278,12 @@ void stub_init (void)
     SCI1.SCR.BIT.RIE = 1;
     SCI1.SCR.BIT.TIE = 1;
     /* Wait at least one bit interval */
-    for (int i = 20000ul; i > 0; --i)
     {
-        asm volatile ("");
+        int i;
+        for (i = 20000ul; i > 0; --i)
+        {
+            asm volatile ("");
+        }
     }
     /* Enable receiver and transmitter. This MUST be done simultaneously. */
     SCI1.SCR.BYTE |= 0x30;
