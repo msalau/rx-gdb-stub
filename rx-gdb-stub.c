@@ -226,7 +226,7 @@ static unsigned int get_next_pc (void)
 {
     const unsigned char * const pc = (unsigned char*)registers[PC];
     const unsigned char * next_pc = pc;
-    unsigned char opcode = *pc;
+    unsigned int opcode = *pc;
     /* Parse first byte of instruction */
     if (0x02 == opcode)                                /* 00000010  1   RTS  */
     {
@@ -240,12 +240,14 @@ static unsigned int get_next_pc (void)
     else if (0x04 == opcode ||                         /* 00000100  4   BRA 4 */
              0x05 == opcode)                           /* 00000101  4   BSR 2 */
     {
-        signed int dsp = pc[1] | (pc[2] << 8) | (pc[3] << 16);
-        if (dsp & 0x00800000)   /* If displacement is negative - extend the sign */
+        unsigned int dsp = ((unsigned int)pc[1] << 0) |
+            ((unsigned int)pc[2] << 8) |
+            ((unsigned int)pc[3] << 16);
+        if (0 != (dsp & 0x00800000U))   /* If displacement is negative - extend the sign */
         {
-            dsp |= 0xFF000000;
+            dsp |= 0xFF000000U;
         }
-        next_pc = pc + dsp;
+        next_pc = pc + (signed int)dsp;
     }
     else if (0x06 == opcode)                           /* 00000110 some kind of memory extended instruction
                                                           00000110 xx0000xx 3+  SUB 2x
@@ -268,13 +270,13 @@ static unsigned int get_next_pc (void)
                                                           00000110 xx1000xx 4+  XOR 2x
                                                         */
     {
-        unsigned char byte1 = pc[1];
-        unsigned char ld = byte1 & 0x03;
-        if (3 == ld)
+        unsigned int byte1 = pc[1];
+        unsigned int ld = byte1 & 0x03U;
+        if (3U == ld)
         {
             ld = 0;
         }
-        if (byte1 & 0x20)
+        if (0 != (byte1 & 0x20U))
         {
             ++ld;
         }
@@ -282,7 +284,7 @@ static unsigned int get_next_pc (void)
     }
     else if ((0xF8 & opcode) == 0x08)                  /* 00001xxx  1   BRA 1 */
     {
-        unsigned char dsp = opcode & 0x07;
+        unsigned int dsp = opcode & 0x07;
         if (dsp < 3)
         {
             dsp += 8;
@@ -295,7 +297,7 @@ static unsigned int get_next_pc (void)
            0: BEQ, BZ
            1: BNE, BNZ */
         unsigned int cnd = ((opcode & 0x80) != 0);
-        unsigned char dsp = 1;
+        unsigned int dsp = 1;
         if (cnd != PSW_Z)
         {
             dsp = opcode & 0x03;
@@ -308,7 +310,7 @@ static unsigned int get_next_pc (void)
     }
     else if (0x2E == opcode)                           /* 00101110  2   BRA 2 */
     {
-        signed char dsp = pc[1];
+        int dsp = (int)(signed char)pc[1];
         next_pc = pc + dsp;
     }
     else if ((0xF0 & opcode) == 0x20)                  /* 0010xxxx  2   BCnd 2 */
@@ -389,17 +391,20 @@ static unsigned int get_next_pc (void)
             /* Wrong opcode */
             break;
         }
-        signed char dsp = 2;
-        if (branch)
         {
-            dsp = pc[1];
+            int dsp = 2;
+            if (branch)
+            {
+                dsp = (int)(signed char)pc[1];
+            }
+            next_pc = pc + dsp;
         }
-        next_pc = pc + dsp;
     }
     else if (0x38 == opcode ||                         /* 00111000  3   BRA 3 */
              0x39 == opcode)                           /* 00111001  3   BSR 1 */
     {
-        signed short dsp = pc[1] | (pc[2] << 8);
+        int dsp = (int)(short int)(((unsigned int)pc[1] << 0) |
+                                   ((unsigned int)pc[2] << 8));
         next_pc = pc + dsp;
     }
     else if ((0xFE & opcode) == 0x3A)                  /* 0011101x  3   BCnd 3 */
@@ -408,17 +413,18 @@ static unsigned int get_next_pc (void)
            0: BEQ, BZ
            1: BNE, BNZ */
         unsigned int cnd = ((opcode & 0x01) != 0);
-        signed short dsp = 3;
+        signed int dsp = 3;
         if (cnd != PSW_Z)
         {
-            dsp = pc[1] | (pc[2] << 8);
+            dsp = (int)(short int)(((unsigned int)pc[1] << 0) |
+                                   ((unsigned int)pc[2] << 8));
         }
         next_pc = pc + dsp;
     }
     else if (0x3F == opcode)                           /* 00111111  3   RTSD 2 */
     {
         unsigned int *sp = (unsigned int*)registers[R0];
-        unsigned char offset = pc[2];
+        unsigned int offset = pc[2];
         next_pc = (unsigned char*)sp[offset];
     }
     else if ((0xFC & opcode) == 0x3C)                  /* 001111xx  3   MOV 4 */
@@ -435,7 +441,7 @@ static unsigned int get_next_pc (void)
                                                           01011xxx  2+  MOVU 2
                                                        */
     {
-        unsigned char ld = opcode & 0x03;
+        unsigned int ld = opcode & 0x03;
         if (0x03 == ld)
         {
             ld = 0;
@@ -445,7 +451,7 @@ static unsigned int get_next_pc (void)
     else if (0x67 == opcode)                           /* 01100111  2   RTSD 1 */
     {
         unsigned int *sp = (unsigned int*)registers[R0];
-        unsigned char offset = pc[1];
+        unsigned int offset = pc[1];
         next_pc = (unsigned char*)sp[offset];
     }
     else if ((0xF0 & opcode) == 0x60)                  /* 0110xxxx group of commands:
@@ -469,7 +475,7 @@ static unsigned int get_next_pc (void)
     else if (0x75 == opcode)                           /* 01110101  3   INT */
     {
         unsigned int *intb = (unsigned int*)registers[INTB];
-        unsigned char n = pc[2];
+        unsigned int n = pc[2];
         next_pc = (unsigned char*)intb[n];
     }
     else if ((0xF8 & opcode) == 0x70)                  /* 01110xxx group of commands:
@@ -484,7 +490,7 @@ static unsigned int get_next_pc (void)
                                                           011101xx  3+  OR 2
                                                        */
     {
-        unsigned char li = (opcode & 0x03);
+        unsigned int li = (opcode & 0x03);
         if (0x03 == li)
         {
             li = 4;
@@ -530,18 +536,18 @@ static unsigned int get_next_pc (void)
                                                           01111111 1011xxxx 2   CLRPSW
                                                        */
     {
-        unsigned char byte1 = pc[1];
+        unsigned int byte1 = pc[1];
         if ((0xE0 & byte1) == 0x00)                    /* 01111111 000xxxxx
                                                           01111111 0000xxxx 2   JMP
                                                           01111111 0001xxxx 2   JSR
                                                        */
         {
-            unsigned char rs = byte1 & 0x0F;
+            unsigned int rs = byte1 & 0x0F;
             next_pc = (unsigned char*)registers[rs];
         }
         else if ((0xF0 & byte1) == 0x50)               /* 01111111 0101xxxx 2   BSR 3 */
         {
-            unsigned char rs = byte1 & 0x0F;
+            unsigned int rs = byte1 & 0x0F;
             next_pc = pc + (signed int)registers[rs];
         }
         else if (0x94  == byte1)                       /* 01111111 10010100 2   RTFI */
@@ -603,7 +609,7 @@ static unsigned int get_next_pc (void)
                                                           11111100 111xxxxx 3+  BNOT 1
                                                        */
     {
-        unsigned char ld = pc[1] & 0x03;
+        unsigned int ld = pc[1] & 0x03;
         if (3 == ld)
         {
             ld = 0;
@@ -612,7 +618,7 @@ static unsigned int get_next_pc (void)
     }
     else if (0xFD == opcode)                           /* 11111101 */
     {
-        unsigned char byte1 = pc[1];
+        unsigned int byte1 = pc[1];
         if (0x72 == byte1)                             /* 11111101 01110010 7   FADD 1
                                                           11111101 01110010 7   FCMP 1
                                                           11111101 01110010 7   FDIV 1
@@ -636,7 +642,7 @@ static unsigned int get_next_pc (void)
                                                        */
                  (0xF3 & byte1) == 0x73)               /* 11111101 0111xx11 4+  MVTC 1 */
         {
-            unsigned char li = byte1 & 0x03;
+            unsigned int li = byte1 & 0x03;
             if (0 == li)
             {
                 li = 4;
@@ -696,12 +702,12 @@ static unsigned int get_next_pc (void)
                                                           111101xx  2+  PUSH 2
                                                        */
     {
-        unsigned char ld = opcode & 0x03;
+        unsigned int ld = opcode & 0x03;
         next_pc = pc + 2 + ld;
     }
     else if (0xFB == opcode)                           /* 11111011  3+  MOV 6 */
     {
-        unsigned char li = (pc[1] >> 2) & 0x03;
+        unsigned int li = (pc[1] >> 2) & 0x03;
         if (0 == li)
         {
             li = 4;
@@ -710,8 +716,8 @@ static unsigned int get_next_pc (void)
     }
     else if ((0xFE & opcode) == 0xF8)                  /* 111110xx  3+  MOV 8 */
     {
-        unsigned char ld = opcode & 0x03;
-        unsigned char li = (pc[1] >> 2) & 0x03;
+        unsigned int ld = opcode & 0x03;
+        unsigned int li = (pc[1] >> 2) & 0x03;
         if (0 == li)
         {
             li = 4;
@@ -725,8 +731,8 @@ static unsigned int get_next_pc (void)
                                                           11xxxxxx  2+  MOV 13
                                                         */
     {
-        unsigned char lds = opcode & 0x03;
-        unsigned char ldd = (opcode >> 2) & 0x03;
+        unsigned int lds = opcode & 0x03;
+        unsigned int ldd = (opcode >> 2) & 0x03;
         if (3 == lds)
         {
             lds = 0;
