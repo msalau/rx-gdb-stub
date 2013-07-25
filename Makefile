@@ -68,8 +68,8 @@ LDFLAGS=\
 
 SRC=\
 	bsp/isr_vectors.c \
-	rx-gdb-stub.o \
-	test.o \
+	rx-gdb-stub.c \
+	test.c \
 	$(END)
 
 OBJ=$(SRC:.c=.o) bsp/crt0.o
