@@ -18,12 +18,13 @@
 #include <string.h>
 #include <limits.h>
 
-#define SIGBREAK 0x03
 static void stub_rsp_handler (unsigned int signal);
 static char stub_getchar (void);
 static void stub_putchar (char c);
+/*@unused@*/
 static void stub_puts (const char *str);
 
+#define SIGBREAK '\x03'
 
 #define TARGET_SIGNAL_INT  2
 #define TARGET_SIGNAL_TRAP 5
@@ -38,18 +39,19 @@ enum regnames
 /* Add some space to hold ACC high word */
 static unsigned int registers[NUM_REGS + 1];
 
-#define PSW_C_BIT (1 << 0)
-#define PSW_Z_BIT (1 << 1)
-#define PSW_S_BIT (1 << 2)
-#define PSW_O_BIT (1 << 3)
+#define PSW_C_BIT (1U << 0)
+#define PSW_Z_BIT (1U << 1)
+#define PSW_S_BIT (1U << 2)
+#define PSW_O_BIT (1U << 3)
 
-#define PSW_C (0 != (registers[PSW] & PSW_C_BIT))
-#define PSW_Z (0 != (registers[PSW] & PSW_Z_BIT))
-#define PSW_S (0 != (registers[PSW] & PSW_S_BIT))
-#define PSW_O (0 != (registers[PSW] & PSW_O_BIT))
+#define PSW_C ((unsigned int)(0 != (registers[PSW] & PSW_C_BIT)))
+#define PSW_Z ((unsigned int)(0 != (registers[PSW] & PSW_Z_BIT)))
+#define PSW_S ((unsigned int)(0 != (registers[PSW] & PSW_S_BIT)))
+#define PSW_O ((unsigned int)(0 != (registers[PSW] & PSW_O_BIT)))
 
 /* Stack pointer provided by linker script.
    It is used to get end of RAM area */
+/*@external@*/
 extern unsigned int _stack;
 
 #define RAM_END ((void*)&_stack)
@@ -64,6 +66,7 @@ static const char hexchars[] = "0123456789abcdef";
 static char trx_buffer[BUFFER_SIZE + 1];
 
 static unsigned char   stepping = 0;
+/*@null@*/
 static unsigned char * stepping_brk_address = NULL;
 static unsigned char   stepping_brk_opcode = OPCODE_BRK;
 
@@ -223,6 +226,8 @@ static void restore_context_and_exit (void)
 }
 
 static unsigned int get_next_pc (void)
+/*@modifies nothing@*/
+/*@globals registers@*/
 {
     const unsigned char * const pc = (unsigned char*)registers[PC];
     const unsigned char * next_pc = pc;
@@ -773,14 +778,16 @@ static unsigned int char2int (char c)
     }
 }
 
-static unsigned int hex2int (const char *src, const char **p)
+static unsigned int hex2int (const char *src, /*@null@*/ const char **p)
+/*@globals nothing@*/
+/*@modifies *p@*/
 {
     unsigned int val = 0U;
     unsigned int nibble = 0U;
     unsigned int count = 0U;
     const char *s = src;
     while (UINT_MAX != (nibble = char2int(*s)) &&
-           count < (sizeof(unsigned int) * 2))
+           count < (sizeof(val) * 2))
     {
         val <<= 4U;
         val += nibble;
@@ -794,7 +801,7 @@ static unsigned int hex2int (const char *src, const char **p)
     return val;
 }
 
-static char * mem2hex(char *dst, const void *src, unsigned int size)
+static void mem2hex(char *dst, const void *src, unsigned int size)
 {
     /* TODO read by 16/32 bits if possible */
     unsigned int i = size;
@@ -807,10 +814,9 @@ static char * mem2hex(char *dst, const void *src, unsigned int size)
         ++s;
     }
     *d = '\0';
-    return d;
 }
 
-static void * hex2mem(void *dst, const char *src, unsigned int size)
+static void hex2mem(void *dst, const char *src, unsigned int size)
 {
     /* TODO read by 16/32 bits if possible */
     unsigned int i = size;
@@ -823,7 +829,6 @@ static void * hex2mem(void *dst, const char *src, unsigned int size)
         c += char2int(*s++);
         *d++ = c;
     }
-    return d;
 }
 
 static void get_packet(void)
@@ -849,6 +854,7 @@ static void get_packet(void)
             if ('$' == c ||
                 '#' == c)
             {
+                /*@innerbreak@*/
                 break;
             }
             checksum += c;
@@ -929,18 +935,20 @@ static void start_step (void)
 
 static void finish_step (void)
 {
-    /* Step back on breakpoint instruction if it is hit */
-    if ((stepping_brk_address + 1) == (unsigned char*)registers[PC])
+    if (NULL != stepping_brk_address)
     {
-        --registers[PC];
-    }
-    /* Clear breakpoint */
-    if (NULL != stepping_brk_address &&
-        OPCODE_BRK != stepping_brk_opcode)
-    {
-        *stepping_brk_address = stepping_brk_opcode;
-        stepping_brk_address = NULL;
-        stepping_brk_opcode = OPCODE_BRK;
+        /* Step back on breakpoint instruction if it is hit */
+        if ((stepping_brk_address + 1) == (unsigned char*)registers[PC])
+        {
+            --registers[PC];
+        }
+        /* Clear breakpoint */
+        if (OPCODE_BRK != stepping_brk_opcode)
+        {
+            *stepping_brk_address = stepping_brk_opcode;
+            stepping_brk_address = NULL;
+            stepping_brk_opcode = OPCODE_BRK;
+        }
     }
 }
 
@@ -956,13 +964,15 @@ static void prepare_state_report (void *dst, unsigned int signal)
     *p++ = hexchars[(PC >> 4) & 0x0F];
     *p++ = hexchars[(PC >> 0) & 0x0F];
     *p++ = ':';
-    p = mem2hex(p, &registers[PC], sizeof registers[0]);
+    mem2hex(p, &registers[PC], sizeof registers[0]);
+    p += sizeof(registers[0]) * 2;
     *p++ = ';';
     /* Report PSW register value */
     *p++ = hexchars[(PSW >> 4) & 0x0F];
     *p++ = hexchars[(PSW >> 0) & 0x0F];
     *p++ = ':';
-    p = mem2hex(p, &registers[PSW], sizeof registers[0]);
+    mem2hex(p, &registers[PSW], sizeof registers[0]);
+    p += sizeof(registers[0]) * 2;
     *p++ = ';';
     *p = '\0';
 }
@@ -985,6 +995,7 @@ static void stub_rsp_handler (unsigned int signal)
         const char *p = trx_buffer;
         trx_buffer[0] = '\0';
         get_packet();
+        /*@-loopswitchbreak@*/
         switch (*p++)
         {
         case '?':                                           /* Report current state */
@@ -1125,11 +1136,12 @@ static void stub_rsp_handler (unsigned int signal)
             trx_buffer[0] = '\0';
             break;
         }
+        /*@=loopswitchbreak@*/
         put_packet(trx_buffer);
     }
 }
 
-void debug_puts (const char *str)
+void debug_puts (/*@unused@*/ const char *str)
 {
     __asm__ __volatile__ ("int #1");
 }
@@ -1186,7 +1198,9 @@ static void stub_erx_handler (void)
     IR(SCI1, ERI1) = 0;
     IR(SCI1, RXI1) = 0;
     /* Read any data present */
+    /*@-noeffect@*/
     (void)SCI1.RDR;
+    /*@=noeffect@*/
     /* Reset error flags in status register */
     SCI1.SSR.BYTE = 0x84;
     stub_rsp_handler(TARGET_SIGNAL_INT);
