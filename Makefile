@@ -15,15 +15,18 @@ FLASH_TOOL=rxusb
 GUIDEBUGGER=ddd
 GUIDEBUGGERFLAGS=--debugger $(DEBUGGER)
 
-#	-Wredundant-decls \
-#	-Wshadow \
+INCLUDE=\
+	-I. \
+	-Ibsp \
+	$(END)
 
 CFLAGS=\
-	-Ibsp \
+	$(INCLUDE) \
 	-Os \
 	-g2 \
 	-Wall \
 	-Wextra \
+	-Wdouble-promotion \
 	-Wnested-externs \
 	-Wpointer-arith \
 	-Wswitch \
@@ -31,12 +34,18 @@ CFLAGS=\
 	-Wstrict-prototypes \
 	-Wunused \
 	-Wno-main \
+	-Wcast-qual \
+	-Wcast-align \
+	-Wwrite-strings \
+	-Wshadow \
+	-Wmissing-declarations \
+	-Wmissing-prototypes \
+	-Wredundant-decls \
+	-Wsuggest-attribute=const \
+	-Wsuggest-attribute=pure \
+	-Wsuggest-attribute=noreturn \
 	\
-	-Wno-strict-aliasing \
-	-Wno-unused-but-set-variable \
 	-Wno-unused-parameter \
-	-Wno-missing-field-initializers \
-	-Wno-sign-compare \
 	\
 	-MMD \
 	-mlittle-endian-data \
