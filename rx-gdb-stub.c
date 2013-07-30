@@ -17,6 +17,7 @@
 #include "isr_vectors.h"
 #include <string.h>
 #include <limits.h>
+#include <stdint.h>
 
 static void stub_rsp_handler (unsigned int signal);
 static char stub_getchar (void);
@@ -801,13 +802,12 @@ static unsigned int hex2int (const char *src, /*@null@*/ const char **p)
     return val;
 }
 
-static void mem2hex(char *dst, const void *src, unsigned int size)
+static void mem2hex_1 (char *dst, const void *src, size_t size)
 {
-    /* TODO read by 16/32 bits if possible */
-    unsigned int i = size;
-    const unsigned char *s = (const unsigned char*)src;
+    size_t i;
+    const uint8_t *s = (const uint8_t*)src;
     char *d = dst;
-    for (; i; --i)
+    for (i = size; i; --i)
     {
         *d++ = hexchars[(*s >> 4) & 0x0F];
         *d++ = hexchars[(*s >> 0) & 0x0F];
@@ -816,18 +816,112 @@ static void mem2hex(char *dst, const void *src, unsigned int size)
     *d = '\0';
 }
 
-static void hex2mem(void *dst, const char *src, unsigned int size)
+static void mem2hex_2 (char *dst, const void *src, size_t size)
 {
-    /* TODO read by 16/32 bits if possible */
-    unsigned int i = size;
-    unsigned char c;
-    const char *s = src;
-    unsigned char *d = (unsigned char*)dst;
-    for (; i; --i)
+    size_t i;
+    const uint16_t *s = (const uint16_t*)src;
+    char *d = dst;
+    for (i = size; i; --i)
     {
-        c = char2int(*s++) << 4;
-        c += char2int(*s++);
-        *d++ = c;
+        uint16_t tmp = *s;
+        mem2hex_1(d, &tmp, sizeof tmp);
+        d += sizeof(tmp) * 2;
+        ++s;
+    }
+}
+
+static void mem2hex_4 (char *dst, const void *src, size_t size)
+{
+    size_t i;
+    const uint32_t *s = (const uint32_t*)src;
+    char *d = dst;
+    for (i = size; i; --i)
+    {
+        uint32_t tmp = *s;
+        mem2hex_1(d, &tmp, sizeof tmp);
+        d += sizeof(tmp) * 2;
+        ++s;
+    }
+}
+
+static void mem2hex (char *dst, const void *src, size_t size)
+{
+    if (0 == ((uint32_t)src % 4)
+        && 0 == (size % 4))
+    {
+        mem2hex_4(dst, src, size / 4);
+    }
+    else if (0 == ((uint32_t)src % 2)
+             && 0 == (size % 2))
+    {
+        mem2hex_2(dst, src, size / 2);
+    }
+    else
+    {
+        mem2hex_1(dst, src, size);
+    }
+}
+
+static void hex2mem_1 (/*@out@*/ uint8_t *dst, const char *src, size_t size)
+{
+    size_t i;
+    const char *s = src;
+    uint8_t *d = dst;
+    for (i = size; i; --i)
+    {
+        unsigned int tmp;
+        tmp = char2int(*s++) << 4;
+        tmp += char2int(*s++);
+        *d = tmp;
+        ++d;
+    }
+}
+
+static void hex2mem_2 (/*@out@*/ uint16_t *dst, const char *src, size_t size)
+{
+    size_t i;
+    const char *s = src;
+    uint16_t *d = dst;
+    for (i = size; i; --i)
+    {
+        uint16_t tmp;
+        hex2mem_1((uint8_t*)&tmp, s, sizeof tmp);
+        *d = tmp;
+        s += sizeof(tmp) * 2;
+        ++d;
+    }
+}
+
+static void hex2mem_4 (/*@out@*/ uint32_t *dst, const char *src, size_t size)
+{
+    size_t i;
+    const char *s = src;
+    uint32_t *d = dst;
+    for (i = size; i; --i)
+    {
+        uint32_t tmp;
+        hex2mem_1((uint8_t*)&tmp, s, sizeof tmp);
+        *d = tmp;
+        s += sizeof(tmp) * 2;
+        ++d;
+    }
+}
+
+static void hex2mem (/*@out@*/ void *dst, const char *src, size_t size)
+{
+    if (0 == ((uint32_t)dst % 4)
+        && 0 == (size % 4))
+    {
+        hex2mem_4(dst, src, size / 4);
+    }
+    else if (0 == ((uint32_t)dst % 2)
+             && 0 == (size % 2))
+    {
+        hex2mem_2(dst, src, size / 2);
+    }
+    else
+    {
+        hex2mem_1(dst, src, size);
     }
 }
 
