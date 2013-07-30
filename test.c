@@ -1,7 +1,7 @@
 #include "rx-gdb-stub.h"
 #include "intrinsics.h"
 
-__attribute__((section(".ramfunc.foo")))
+__attribute__((section(".ramfunc.foo"),noinline))
 static void foo (void)
 {
     int i;
