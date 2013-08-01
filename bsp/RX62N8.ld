@@ -43,7 +43,7 @@ MEMORY {
 	ROM (w)   : ORIGIN = 0xfff80000, LENGTH = 512k
 }
 
-PROVIDE (__stack = 96k );
+PROVIDE (__stack = ORIGIN(RAM) + LENGTH(RAM));
 
 SECTIONS
 {
