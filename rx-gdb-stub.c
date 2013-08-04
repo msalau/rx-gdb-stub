@@ -1344,10 +1344,10 @@ void stub_init (void)
     */
     SYSTEM.SCKCR.LONG = 0x00C10100UL;
 
-    _isr_vectors[0] = stub_brk_handler;
-    _isr_vectors[1] = stub_puts_handler;
-    _isr_vectors[VECT(SCI1, RXI1)] = stub_rx_handler;
-    _isr_vectors[VECT(SCI1, ERI1)] = stub_erx_handler;
+    _vectors[0] = stub_brk_handler;
+    _vectors[1] = stub_puts_handler;
+    _vectors[VECT(SCI1, RXI1)] = stub_rx_handler;
+    _vectors[VECT(SCI1, ERI1)] = stub_erx_handler;
 
     /* Configure SCI1 */
     MSTP(SCI1) = 0;                                         /* Enable module */

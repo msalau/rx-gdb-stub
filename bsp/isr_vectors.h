@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 typedef void (*irq_handler)(void);
-extern irq_handler _isr_vectors[256];
+extern irq_handler _vectors[256];
 
 #ifdef __cplusplus
 } /* extern "C" */

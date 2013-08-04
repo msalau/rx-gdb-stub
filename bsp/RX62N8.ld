@@ -180,7 +180,7 @@ SECTIONS
 
   .vectors (0xFFFFFFD0) :
   {
-    PROVIDE (__vectors = .);
+    PROVIDE (__fixed_vectors = .);
     LONG (__rx_priviledged_exception_handler);
     LONG (__rx_access_exception_handler);
     LONG (0);

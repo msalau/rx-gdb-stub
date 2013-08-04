@@ -61,7 +61,6 @@ ASFLAGS=\
 	$(END)
 
 LDFLAGS=\
-	-nostartfiles \
 	-Wl,--gc-sections \
 	-Wl,-Map=$(PROJECT_MAP) \
 	-T bsp/RX62N8.ld \
@@ -98,7 +97,7 @@ SRC=\
 	test.c \
 	$(END)
 
-OBJ=$(SRC:.c=.o) bsp/crt0.o
+OBJ=$(SRC:.c=.o)
 DEP=$(OBJ:.o=.d)
 
 all: $(PROJECT_LST) $(PROJECT)
