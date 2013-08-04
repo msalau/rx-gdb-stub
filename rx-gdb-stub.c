@@ -13,6 +13,7 @@
  ***********************************************************************/
 
 #include "rx-gdb-stub.h"
+#include <intrinsics.h>
 #include <iodefine.h>
 #include "isr_vectors.h"
 #include <string.h>
@@ -1333,6 +1334,7 @@ static char stub_getchar (void)
 #define SCI1_BAUDRATE  115200U
 #endif
 
+__attribute__((constructor(101)))
 void stub_init (void)
 {
     /* Configure system clocks as following:
@@ -1395,4 +1397,5 @@ void stub_init (void)
     }
     /* Enable receiver and transmitter. This MUST be done simultaneously. */
     SCI1.SCR.BYTE |= 0x30;
+    __breakpoint();
 }

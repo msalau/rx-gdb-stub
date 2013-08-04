@@ -16,8 +16,6 @@ int main (void)
 {
     volatile unsigned int lval1 = 0;
     volatile unsigned int lval2 = -1;
-    stub_init();
-    __breakpoint();
     __enable_interrupt();
     debug_puts("Hello, buggy world!");
     for (;;)
