@@ -1,5 +1,5 @@
-#include "rx-gdb-stub.h"
-#include "intrinsics.h"
+#include <rx-gdb-stub.h>
+#include <intrinsics.h>
 
 __attribute__((section(".ramfunc.foo"),noinline))
 static void foo (void)

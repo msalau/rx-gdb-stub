@@ -12,10 +12,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.                *
  ***********************************************************************/
 
-#include "rx-gdb-stub.h"
+#include <rx-gdb-stub.h>
 #include <intrinsics.h>
 #include <iodefine.h>
-#include "isr_vectors.h"
+#include <isr_vectors.h>
 #include <string.h>
 #include <limits.h>
 #include <stdint.h>
