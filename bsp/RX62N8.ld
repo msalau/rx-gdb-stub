@@ -71,12 +71,7 @@ SECTIONS
     KEEP (*(.eh_frame))
     KEEP (*(.gcc_except_table)) *(.gcc_except_table.*)
     . = ALIGN(4);
-    PROVIDE(__romdatastart = .);
-  } > ROM
 
-  .data : {
-    . = ALIGN(4);
-    PROVIDE (__datastart = .); /* IF_ROROM */
     PROVIDE (__preinit_array_start = .);
     KEEP (*(.preinit_array))
     PROVIDE (__preinit_array_end = .);
@@ -110,6 +105,13 @@ SECTIONS
     KEEP (*(EXCLUDE_FILE (*crtend*.o ) .dtors))
     KEEP (*(SORT(.dtors.*)))
     KEEP (*(.dtors))
+
+    PROVIDE(__romdatastart = .);
+  } > ROM
+
+  .data : {
+    . = ALIGN(4);
+    PROVIDE (__datastart = .); /* IF_ROROM */
 
     KEEP (*(.jcr))
     *(.data.rel.ro.local) *(.data.rel.ro*)
